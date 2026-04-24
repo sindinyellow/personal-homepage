@@ -1,0 +1,17 @@
+---
+const navItems = [
+  { href: '/', label: '首页' },
+  { href: '/projects/', label: '项目' },
+  { href: '/blog/', label: '博客' },
+];
+---
+
+<header class="site-header">
+  <a class="brand" href="/" aria-label="返回首页">
+    <span class="brand-mark">YN</span>
+    <span>你的姓名</span>
+  </a>
+  <nav class="nav" aria-label="主导航">
+    {navItems.map((item) => <a href={item.href}>{item.label}</a>)}
+  </nav>
+</header>

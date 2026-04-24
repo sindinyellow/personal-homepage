@@ -1,0 +1,79 @@
+---
+import { getCollection } from 'astro:content';
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import PostCard from '@/components/PostCard.astro';
+import ProjectCard from '@/components/ProjectCard.astro';
+import { profile, projects, skills } from '@/data/profile';
+
+const posts = (await getCollection('blog'))
+  .filter((post) => !post.data.draft)
+  .sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf())
+  .slice(0, 3);
+---
+
+<BaseLayout title={`${profile.name} - 个人主页`} description={profile.summary}>
+  <section class="hero section-wrap">
+    <div class="hero-copy">
+      <p class="eyebrow">个人主页 / 项目作品集 / 技术博客</p>
+      <h1>{profile.name}</h1>
+      <p class="hero-role">{profile.role}</p>
+      <p>{profile.summary}</p>
+      <div class="hero-actions">
+        <a class="button primary" href="/projects/">查看项目</a>
+        <a class="button secondary" href="/blog/">阅读博客</a>
+      </div>
+    </div>
+    <aside class="profile-panel" aria-label="个人信息摘要">
+      <img src="/profile-card.svg" alt="个人主页封面视觉" width="520" height="360" />
+      <div class="contact-grid">
+        <span>邮箱</span><a href={`mailto:${profile.email}`}>{profile.email}</a>
+        <span>城市</span><strong>{profile.location}</strong>
+        <span>电话</span><strong>{profile.phone}</strong>
+      </div>
+    </aside>
+  </section>
+
+  <section class="section-wrap split-section">
+    <div>
+      <p class="eyebrow">技能栈</p>
+      <h2>我主要关注 Web 全栈开发和业务系统落地。</h2>
+    </div>
+    <div class="skill-grid">
+      {skills.map((skill) => <span>{skill}</span>)}
+    </div>
+  </section>
+
+  <section class="section-wrap content-section">
+    <div class="section-heading">
+      <div>
+        <p class="eyebrow">精选项目</p>
+        <h2>把项目经历讲清楚。</h2>
+      </div>
+      <a href="/projects/">全部项目</a>
+    </div>
+    <div class="project-list">
+      {projects.slice(0, 2).map((project) => <ProjectCard {...project} />)}
+    </div>
+  </section>
+
+  <section class="section-wrap content-section">
+    <div class="section-heading">
+      <div>
+        <p class="eyebrow">最新文章</p>
+        <h2>记录学习、复盘和问题解决。</h2>
+      </div>
+      <a href="/blog/">全部文章</a>
+    </div>
+    <div class="post-grid">
+      {posts.map((post) => (
+        <PostCard
+          title={post.data.title}
+          description={post.data.description}
+          href={`/blog/${post.slug}/`}
+          pubDate={post.data.pubDate}
+          tags={post.data.tags}
+        />
+      ))}
+    </div>
+  </section>
+</BaseLayout>

@@ -1,0 +1,17 @@
+---
+import { profile } from '@/data/profile';
+const year = new Date().getFullYear();
+---
+
+<footer class="site-footer">
+  <div>
+    <strong>{profile.name}</strong>
+    <span>持续记录项目、学习和解决问题的过程。</span>
+  </div>
+  <div class="footer-links">
+    <a href={`mailto:${profile.email}`}>邮箱</a>
+    <a href={profile.github}>GitHub</a>
+    <a href={profile.gitee}>Gitee</a>
+  </div>
+  <small>© {year} {profile.name}</small>
+</footer>

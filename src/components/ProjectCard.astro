@@ -1,0 +1,37 @@
+---
+interface ProjectLink {
+  label: string;
+  href: string;
+}
+
+interface Props {
+  title: string;
+  period: string;
+  role: string;
+  summary: string;
+  stack: string[];
+  highlights: string[];
+  links: ProjectLink[];
+}
+
+const project = Astro.props;
+---
+
+<article class="project-card">
+  <div class="project-head">
+    <div>
+      <p class="eyebrow">{project.period} · {project.role}</p>
+      <h3>{project.title}</h3>
+    </div>
+    <div class="project-links">
+      {project.links.map((link) => <a href={link.href}>{link.label}</a>)}
+    </div>
+  </div>
+  <p>{project.summary}</p>
+  <div class="tag-row">
+    {project.stack.map((item) => <span>{item}</span>)}
+  </div>
+  <ul class="clean-list">
+    {project.highlights.map((item) => <li>{item}</li>)}
+  </ul>
+</article>
