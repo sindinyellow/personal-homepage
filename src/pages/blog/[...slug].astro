@@ -18,20 +18,27 @@ const formattedDate = new Intl.DateTimeFormat('zh-CN', {
   month: 'long',
   day: 'numeric',
 }).format(post.data.pubDate);
+
+// 估算阅读时间：中文约 400 字/分钟
+const wordCount = post.body?.length ?? 0;
+const readingTime = Math.max(1, Math.ceil(wordCount / 400));
 ---
 
 <BaseLayout title={`${post.data.title} - ${profile.name}`} description={post.data.description}>
   <article class="article section-wrap">
-    <a class="back-link" href="/blog/">返回博客</a>
+    <a class="back-link animate-in" href="/blog/">← 返回博客</a>
     <header>
-      <p class="eyebrow">{formattedDate}</p>
-      <h1>{post.data.title}</h1>
-      <p>{post.data.description}</p>
-      <div class="tag-row">
+      <div class="article-meta animate-in delay-1">
+        <p class="eyebrow" style="margin:0;">{formattedDate}</p>
+        <span class="reading-time">· {readingTime} 分钟阅读</span>
+      </div>
+      <h1 class="animate-in delay-2">{post.data.title}</h1>
+      <p class="animate-in delay-2">{post.data.description}</p>
+      <div class="tag-row animate-in delay-3">
         {post.data.tags.map((tag) => <span>{tag}</span>)}
       </div>
     </header>
-    <div class="article-body">
+    <div class="article-body animate-in delay-3">
       <Content />
     </div>
   </article>

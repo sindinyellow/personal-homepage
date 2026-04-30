@@ -1,0 +1,17 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro';
+---
+
+<BaseLayout title="404 - 页面未找到" description="抱歉，您访问的页面不存在。">
+  <section class="section-wrap page-404">
+    <div class="error-code animate-in">404</div>
+    <h2 class="animate-in delay-1">页面走丢了</h2>
+    <p class="animate-in delay-2" style="color:var(--muted);max-width:420px;text-align:center;">
+      抱歉，您访问的页面不存在或已被移动。请检查链接是否正确，或者返回首页继续浏览。
+    </p>
+    <div class="hero-actions animate-in delay-3">
+      <a class="button primary" href="/">返回首页</a>
+      <a class="button secondary" href="/blog/">阅读博客</a>
+    </div>
+  </section>
+</BaseLayout>

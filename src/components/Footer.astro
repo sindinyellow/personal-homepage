@@ -10,8 +10,11 @@ const year = new Date().getFullYear();
   </div>
   <div class="footer-links">
     <a href={`mailto:${profile.email}`}>邮箱</a>
-    <a href={profile.github}>GitHub</a>
-    <a href={profile.gitee}>Gitee</a>
+    <a href={profile.github} target="_blank" rel="noopener noreferrer">GitHub</a>
+    <a href={profile.gitee} target="_blank" rel="noopener noreferrer">Gitee</a>
+    {profile.resumeUrl && profile.resumeUrl !== '#' && (
+      <a href={profile.resumeUrl} target="_blank" rel="noopener noreferrer">下载简历</a>
+    )}
   </div>
-  <small>© {year} {profile.name}</small>
+  <small>&copy; {year} {profile.name}. Built with Astro.</small>
 </footer>

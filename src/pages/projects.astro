@@ -6,14 +6,18 @@ import { profile, projects } from '@/data/profile';
 
 <BaseLayout title={`项目经历 - ${profile.name}`} description="个人项目经历、技术栈和职责成果展示。">
   <section class="page-hero section-wrap compact">
-    <p class="eyebrow">Projects</p>
-    <h1>项目经历</h1>
-    <p>这里集中展示可以写进简历、面试时展开讲的项目。把占位内容替换成真实成果后，就能作为简历链接的主要落点。</p>
+    <p class="eyebrow animate-in">Projects</p>
+    <h1 class="animate-in delay-1">项目经历</h1>
+    <p class="animate-in delay-2">这里集中展示我的项目经历和技术实践，每个项目都附带技术栈、核心亮点和成果。</p>
   </section>
 
   <section class="section-wrap content-section">
     <div class="project-list">
-      {projects.map((project) => <ProjectCard {...project} />)}
+      {projects.map((project, i) => (
+        <div class={`animate-in delay-${Math.min(i + 1, 4)}`}>
+          <ProjectCard {...project} />
+        </div>
+      ))}
     </div>
   </section>
 </BaseLayout>

@@ -5,9 +5,11 @@ interface Props {
   href: string;
   pubDate: Date;
   tags: string[];
+  /** 预计阅读分钟数（可选） */
+  readingTime?: number;
 }
 
-const { title, description, href, pubDate, tags } = Astro.props;
+const { title, description, href, pubDate, tags, readingTime } = Astro.props;
 const formattedDate = new Intl.DateTimeFormat('zh-CN', {
   year: 'numeric',
   month: '2-digit',
@@ -18,6 +20,7 @@ const formattedDate = new Intl.DateTimeFormat('zh-CN', {
 <article class="post-card">
   <a href={href}>
     <time datetime={pubDate.toISOString()}>{formattedDate}</time>
+    {readingTime && <span class="reading-time">· {readingTime} 分钟阅读</span>}
     <h3>{title}</h3>
     <p>{description}</p>
     <div class="tag-row">

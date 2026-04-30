@@ -11,21 +11,23 @@ const posts = (await getCollection('blog'))
 
 <BaseLayout title={`技术博客 - ${profile.name}`} description="学习记录、项目复盘和技术文章。">
   <section class="page-hero section-wrap compact">
-    <p class="eyebrow">Blog</p>
-    <h1>技术博客</h1>
-    <p>用 Markdown 维护文章，适合记录项目复盘、学习笔记、问题排查和面试准备。</p>
+    <p class="eyebrow animate-in">Blog</p>
+    <h1 class="animate-in delay-1">技术博客</h1>
+    <p class="animate-in delay-2">记录项目复盘、学习笔记、问题排查和面试准备，用 Markdown 维护，持续更新。</p>
   </section>
 
   <section class="section-wrap content-section">
     <div class="post-grid wide">
-      {posts.map((post) => (
-        <PostCard
-          title={post.data.title}
-          description={post.data.description}
-          href={`/blog/${post.slug}/`}
-          pubDate={post.data.pubDate}
-          tags={post.data.tags}
-        />
+      {posts.map((post, i) => (
+        <div class={`animate-in delay-${Math.min(i + 1, 4)}`}>
+          <PostCard
+            title={post.data.title}
+            description={post.data.description}
+            href={`/blog/${post.slug}/`}
+            pubDate={post.data.pubDate}
+            tags={post.data.tags}
+          />
+        </div>
       ))}
     </div>
   </section>

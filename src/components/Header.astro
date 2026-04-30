@@ -8,10 +8,49 @@ const navItems = [
 
 <header class="site-header">
   <a class="brand" href="/" aria-label="返回首页">
-    <span class="brand-mark">YN</span>
-    <span>你的姓名</span>
+    <span class="brand-mark">HXQ</span>
+    <span>黄鑫权</span>
   </a>
-  <nav class="nav" aria-label="主导航">
-    {navItems.map((item) => <a href={item.href}>{item.label}</a>)}
-  </nav>
+  <div style="display:flex;align-items:center;gap:12px;">
+    <nav class="nav" aria-label="主导航">
+      {navItems.map((item) => <a href={item.href}>{item.label}</a>)}
+    </nav>
+    <button
+      class="theme-toggle"
+      id="theme-toggle"
+      type="button"
+      aria-label="切换暗色模式"
+      title="切换暗色模式"
+    >
+      <span id="theme-icon">🌙</span>
+    </button>
+  </div>
 </header>
+
+<script>
+  // 暗色模式切换逻辑
+  function initThemeToggle() {
+    const btn = document.getElementById('theme-toggle');
+    const icon = document.getElementById('theme-icon');
+    if (!btn || !icon) return;
+
+    function updateIcon() {
+      const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+      if (icon) icon.textContent = isDark ? '☀️' : '🌙';
+    }
+
+    updateIcon();
+
+    btn.addEventListener('click', () => {
+      const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+      const next = isDark ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', next);
+      localStorage.setItem('theme', next);
+      updateIcon();
+    });
+  }
+
+  // 支持 Astro View Transitions
+  initThemeToggle();
+  document.addEventListener('astro:after-swap', initThemeToggle);
+</script>

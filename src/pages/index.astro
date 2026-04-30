@@ -12,18 +12,19 @@ const posts = (await getCollection('blog'))
 ---
 
 <BaseLayout title={`${profile.name} - 个人主页`} description={profile.summary}>
+  <!-- Hero -->
   <section class="hero section-wrap">
     <div class="hero-copy">
-      <p class="eyebrow">个人主页 / 项目作品集 / 技术博客</p>
-      <h1>{profile.name}</h1>
-      <p class="hero-role">{profile.role}</p>
-      <p>{profile.summary}</p>
-      <div class="hero-actions">
+      <p class="eyebrow animate-in">个人主页 / 项目作品集 / 技术博客</p>
+      <h1 class="animate-in delay-1">{profile.name}</h1>
+      <p class="hero-role animate-in delay-2">{profile.role}</p>
+      <p class="animate-in delay-2">{profile.summary}</p>
+      <div class="hero-actions animate-in delay-3">
         <a class="button primary" href="/projects/">查看项目</a>
         <a class="button secondary" href="/blog/">阅读博客</a>
       </div>
     </div>
-    <aside class="profile-panel" aria-label="个人信息摘要">
+    <aside class="profile-panel animate-in delay-3" aria-label="个人信息摘要">
       <img src="/profile-card.svg" alt="个人主页封面视觉" width="520" height="360" />
       <div class="contact-grid">
         <span>邮箱</span><a href={`mailto:${profile.email}`}>{profile.email}</a>
@@ -33,18 +34,20 @@ const posts = (await getCollection('blog'))
     </aside>
   </section>
 
+  <!-- 技能栈 -->
   <section class="section-wrap split-section">
-    <div>
+    <div class="animate-in">
       <p class="eyebrow">技能栈</p>
-      <h2>我主要关注 Web 全栈开发和业务系统落地。</h2>
+      <h2>专注 Web 全栈开发和业务系统落地。</h2>
     </div>
-    <div class="skill-grid">
+    <div class="skill-grid animate-in delay-1">
       {skills.map((skill) => <span>{skill}</span>)}
     </div>
   </section>
 
+  <!-- 精选项目 -->
   <section class="section-wrap content-section">
-    <div class="section-heading">
+    <div class="section-heading animate-in">
       <div>
         <p class="eyebrow">精选项目</p>
         <h2>把项目经历讲清楚。</h2>
@@ -52,12 +55,17 @@ const posts = (await getCollection('blog'))
       <a href="/projects/">全部项目</a>
     </div>
     <div class="project-list">
-      {projects.slice(0, 2).map((project) => <ProjectCard {...project} />)}
+      {projects.slice(0, 2).map((project, i) => (
+        <div class={`animate-in delay-${i + 1}`}>
+          <ProjectCard {...project} />
+        </div>
+      ))}
     </div>
   </section>
 
+  <!-- 最新文章 -->
   <section class="section-wrap content-section">
-    <div class="section-heading">
+    <div class="section-heading animate-in">
       <div>
         <p class="eyebrow">最新文章</p>
         <h2>记录学习、复盘和问题解决。</h2>
@@ -65,14 +73,16 @@ const posts = (await getCollection('blog'))
       <a href="/blog/">全部文章</a>
     </div>
     <div class="post-grid">
-      {posts.map((post) => (
-        <PostCard
-          title={post.data.title}
-          description={post.data.description}
-          href={`/blog/${post.slug}/`}
-          pubDate={post.data.pubDate}
-          tags={post.data.tags}
-        />
+      {posts.map((post, i) => (
+        <div class={`animate-in delay-${i + 1}`}>
+          <PostCard
+            title={post.data.title}
+            description={post.data.description}
+            href={`/blog/${post.slug}/`}
+            pubDate={post.data.pubDate}
+            tags={post.data.tags}
+          />
+        </div>
       ))}
     </div>
   </section>
