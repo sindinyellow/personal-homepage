@@ -27,8 +27,9 @@ export const profile = {
     },
   ],
   careerHighlights: [
+    '实习期间独立负责 HIS 系统中医生排班、预约挂号、预约签到三个核心模块开发。',
     '围绕校园赛事管理场景完成管理员与学生双角色业务系统设计。',
-    '熟悉 RBAC 权限、自动排程、报名幂等、成绩统计等常见后台系统能力。',
+    '熟悉 CAS 并发控制、RBAC 权限、DDD 分层架构等常见后台系统能力。',
     '持续用博客记录项目复盘、学习笔记和问题排查过程。',
   ],
 };
@@ -40,10 +41,12 @@ export const skills = [
   'Vue 3',
   'TypeScript',
   'MySQL',
+  'PostgreSQL',
   'Redis',
   'REST API',
   'Element Plus',
   'MyBatis',
+  'MyBatis-Plus',
   'Git',
   '前端工程化',
 ];
@@ -64,6 +67,23 @@ export const projects = [
     ],
     links: [
       { label: '代码仓库', href: 'https://github.com/sindinyellow' },
+    ],
+  },
+  {
+    title: 'HIS 医院信息系统（实习）',
+    period: '2026.03 - 2026.04',
+    role: '后端开发 / 实习',
+    summary:
+      '面向医院门诊场景的信息管理系统，实习期间独立负责医生排班、预约挂号、预约签到三个核心模块的前后端开发，涉及 CAS 并发控制、DDD 分层架构和复杂 SQL 设计。',
+    stack: ['Spring Boot', 'MyBatis-Plus', 'PostgreSQL', 'Vue 3', 'Element Plus'],
+    highlights: [
+      '设计号源三层模型（排班模板 → 号源池 → 号源槽位），实现 CAS 原子抢占保证并发安全。',
+      '预约流程采用四道防线：取消次数限制、直查物理底座、CAS 原子抢占、数据强覆盖。',
+      '使用 PostgreSQL DISTINCT ON、状态归一化 CASE WHEN、五表联查等复杂 SQL 解决业务需求。',
+      '前端通过"一次性令牌"模式解决异步签到流程中的防串单问题。',
+    ],
+    links: [
+      { label: '技术博客', href: '/blog/his-internship/' },
     ],
   },
   {
