@@ -16,24 +16,36 @@ interface Props {
 
 const project = Astro.props;
 const links = project.links.filter((link) => link.href);
+const isExternal = (href: string) => href.startsWith('http');
 ---
 
 <article class="project-card">
   <div class="project-head">
     <div>
-      <p class="eyebrow">{project.period} · {project.role}</p>
+      <p class="eyebrow project-period">{project.period}</p>
       <h3>{project.title}</h3>
+      <p class="project-role">{project.role}</p>
     </div>
     {links.length > 0 && (
       <div class="project-links">
-        {links.map((link) => <a href={link.href}>{link.label}</a>)}
+        {links.map((link) => (
+          <a
+            href={link.href}
+            target={isExternal(link.href) ? '_blank' : undefined}
+            rel={isExternal(link.href) ? 'noopener noreferrer' : undefined}
+          >
+            {link.label}
+          </a>
+        ))}
       </div>
     )}
   </div>
   <p>{project.summary}</p>
+  <p class="card-label">技术栈</p>
   <div class="tag-row">
     {project.stack.map((item) => <span>{item}</span>)}
   </div>
+  <p class="card-label">职责与亮点</p>
   <ul class="clean-list">
     {project.highlights.map((item) => <li>{item}</li>)}
   </ul>

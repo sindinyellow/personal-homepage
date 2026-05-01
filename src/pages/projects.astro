@@ -8,10 +8,19 @@ import { profile, projects } from '@/data/profile';
   <section class="page-hero section-wrap compact">
     <p class="eyebrow animate-in">Projects</p>
     <h1 class="animate-in delay-1">项目经历</h1>
-    <p class="animate-in delay-2">这里集中展示我的项目经历和技术实践，每个项目都附带技术栈、核心亮点和成果。</p>
+    <p class="animate-in delay-2">用项目说明我能完成的业务开发工作：从需求拆解、接口设计、权限控制到前端页面落地。</p>
+    <div class="page-highlights animate-in delay-3">
+      {profile.careerHighlights.map((item) => <span>{item}</span>)}
+    </div>
   </section>
 
   <section class="section-wrap content-section">
+    <div class="section-heading animate-in">
+      <div>
+        <p class="eyebrow">Project Evidence</p>
+        <h2>项目不只列技术栈，也说明职责和落地价值。</h2>
+      </div>
+    </div>
     <div class="project-list">
       {projects.map((project, i) => (
         <div class={`animate-in delay-${Math.min(i + 1, 4)}`}>

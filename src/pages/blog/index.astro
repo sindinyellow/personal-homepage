@@ -3,32 +3,73 @@ import { getCollection } from 'astro:content';
 import BaseLayout from '@/layouts/BaseLayout.astro';
 import PostCard from '@/components/PostCard.astro';
 import { profile } from '@/data/profile';
+import { calcReadingTime } from '@/utils/readingTime';
 
 const posts = (await getCollection('blog'))
   .filter((post) => !post.data.draft)
   .sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf());
+
+const allTags = [...new Set(posts.flatMap((post) => post.data.tags))].sort();
 ---
 
 <BaseLayout title={`技术博客 - ${profile.name}`} description="学习记录、项目复盘和技术文章。">
   <section class="page-hero section-wrap compact">
     <p class="eyebrow animate-in">Blog</p>
     <h1 class="animate-in delay-1">技术博客</h1>
-    <p class="animate-in delay-2">记录项目复盘、学习笔记、问题排查和面试准备，用 Markdown 维护，持续更新。</p>
+    <p class="animate-in delay-2">记录项目复盘、学习笔记、问题排查和面试准备，用文章补充项目之外的技术判断和表达能力。</p>
+    <div class="page-metrics animate-in delay-3" aria-label="博客统计">
+      <span>{posts.length} 篇文章</span>
+      <span>{allTags.length} 个标签</span>
+      <span>Markdown 维护</span>
+    </div>
   </section>
 
   <section class="section-wrap content-section">
-    <div class="post-grid wide">
+    <div class="tag-filter animate-in delay-3" aria-label="按标签筛选">
+      <button class="tag-btn active" data-tag="all">全部</button>
+      {allTags.map((tag) => (
+        <button class="tag-btn" data-tag={tag}>{tag}</button>
+      ))}
+    </div>
+
+    <div class="post-grid wide" id="post-grid">
       {posts.map((post, i) => (
-        <div class={`animate-in delay-${Math.min(i + 1, 4)}`}>
+        <div class={`post-card animate-in delay-${Math.min(i + 1, 4)}`} data-tags={JSON.stringify(post.data.tags)}>
           <PostCard
             title={post.data.title}
             description={post.data.description}
             href={`/blog/${post.slug}/`}
             pubDate={post.data.pubDate}
             tags={post.data.tags}
+            readingTime={calcReadingTime(post.body)}
           />
         </div>
       ))}
     </div>
   </section>
 </BaseLayout>
+
+<script>
+  function initTagFilter() {
+    const buttons = document.querySelectorAll<HTMLButtonElement>('.tag-btn');
+    const cards = document.querySelectorAll<HTMLElement>('#post-grid > .post-card');
+    if (!buttons.length || !cards.length) return;
+
+    buttons.forEach((btn) => {
+      btn.addEventListener('click', () => {
+        buttons.forEach((b) => b.classList.remove('active'));
+        btn.classList.add('active');
+        const tag = btn.dataset.tag;
+
+        cards.forEach((card) => {
+          const tags = JSON.parse(card.dataset.tags || '[]');
+          const show = tag === 'all' || tags.includes(tag);
+          card.style.display = show ? '' : 'none';
+        });
+      });
+    });
+  }
+
+  initTagFilter();
+  document.addEventListener('astro:after-swap', initTagFilter);
+</script>

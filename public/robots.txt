@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://scintillating-malasada-cb96d8.netlify.app/sitemap-index.xml

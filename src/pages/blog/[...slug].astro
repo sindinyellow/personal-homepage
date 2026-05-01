@@ -2,16 +2,23 @@
 import { getCollection, render } from 'astro:content';
 import BaseLayout from '@/layouts/BaseLayout.astro';
 import { profile } from '@/data/profile';
+import { calcReadingTime } from '@/utils/readingTime';
 
 export async function getStaticPaths() {
-  const posts = await getCollection('blog', ({ data }) => !data.draft);
-  return posts.map((post) => ({
+  const posts = (await getCollection('blog', ({ data }) => !data.draft))
+    .sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf());
+
+  return posts.map((post, i) => ({
     params: { slug: post.slug },
-    props: { post },
+    props: {
+      post,
+      prevPost: i < posts.length - 1 ? posts[i + 1] : null,
+      nextPost: i > 0 ? posts[i - 1] : null,
+    },
   }));
 }
 
-const { post } = Astro.props;
+const { post, prevPost, nextPost } = Astro.props;
 const { Content } = await render(post);
 const formattedDate = new Intl.DateTimeFormat('zh-CN', {
   year: 'numeric',
@@ -19,18 +26,33 @@ const formattedDate = new Intl.DateTimeFormat('zh-CN', {
   day: 'numeric',
 }).format(post.data.pubDate);
 
-// 估算阅读时间：中文约 400 字/分钟
-const wordCount = post.body?.length ?? 0;
-const readingTime = Math.max(1, Math.ceil(wordCount / 400));
+const readingTime = calcReadingTime(post.body);
+const articleSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'BlogPosting',
+  headline: post.data.title,
+  description: post.data.description,
+  datePublished: post.data.pubDate.toISOString(),
+  author: {
+    '@type': 'Person',
+    name: profile.name,
+  },
+  mainEntityOfPage: new URL(Astro.url.pathname, Astro.site).toString(),
+};
 ---
 
-<BaseLayout title={`${post.data.title} - ${profile.name}`} description={post.data.description}>
+<BaseLayout
+  title={`${post.data.title} - ${profile.name}`}
+  description={post.data.description}
+  ogType="article"
+  structuredData={articleSchema}
+>
   <article class="article section-wrap">
-    <a class="back-link animate-in" href="/blog/">← 返回博客</a>
+    <a class="back-link animate-in" href="/blog/">返回文章列表</a>
     <header>
       <div class="article-meta animate-in delay-1">
-        <p class="eyebrow" style="margin:0;">{formattedDate}</p>
-        <span class="reading-time">· {readingTime} 分钟阅读</span>
+        <time class="eyebrow" datetime={post.data.pubDate.toISOString()}>{formattedDate}</time>
+        <span class="reading-time">{readingTime} 分钟阅读</span>
       </div>
       <h1 class="animate-in delay-2">{post.data.title}</h1>
       <p class="animate-in delay-2">{post.data.description}</p>
@@ -41,5 +63,42 @@ const readingTime = Math.max(1, Math.ceil(wordCount / 400));
     <div class="article-body animate-in delay-3">
       <Content />
     </div>
+    <nav class="post-nav" aria-label="文章导航">
+      {prevPost && (
+        <a class="post-nav-item prev" href={`/blog/${prevPost.slug}/`}>
+          <span class="post-nav-label">上一篇</span>
+          <span class="post-nav-title">{prevPost.data.title}</span>
+        </a>
+      )}
+      {nextPost && (
+        <a class="post-nav-item next" href={`/blog/${nextPost.slug}/`}>
+          <span class="post-nav-label">下一篇</span>
+          <span class="post-nav-title">{nextPost.data.title}</span>
+        </a>
+      )}
+    </nav>
+    <footer class="article-footer">
+      <a class="button secondary" href="/blog/">更多文章</a>
+      <a class="button secondary" href="/projects/">查看项目</a>
+    </footer>
   </article>
+  <button class="back-to-top" id="back-to-top" aria-label="回到顶部" title="回到顶部">&#8593;</button>
 </BaseLayout>
+
+<script>
+  function initBackToTop() {
+    const btn = document.getElementById('back-to-top');
+    if (!btn) return;
+
+    window.addEventListener('scroll', () => {
+      btn.classList.toggle('visible', window.scrollY > 400);
+    }, { passive: true });
+
+    btn.addEventListener('click', () => {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+  }
+
+  initBackToTop();
+  document.addEventListener('astro:after-swap', initBackToTop);
+</script>

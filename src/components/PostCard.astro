@@ -19,8 +19,10 @@ const formattedDate = new Intl.DateTimeFormat('zh-CN', {
 
 <article class="post-card">
   <a href={href}>
-    <time datetime={pubDate.toISOString()}>{formattedDate}</time>
-    {readingTime && <span class="reading-time">· {readingTime} 分钟阅读</span>}
+    <div class="post-meta">
+      <time datetime={pubDate.toISOString()}>{formattedDate}</time>
+      {readingTime && <span class="reading-time">{readingTime} 分钟阅读</span>}
+    </div>
     <h3>{title}</h3>
     <p>{description}</p>
     <div class="tag-row">

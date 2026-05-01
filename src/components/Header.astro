@@ -4,16 +4,26 @@ const navItems = [
   { href: '/projects/', label: '项目' },
   { href: '/blog/', label: '博客' },
 ];
+
+const currentPath = Astro.url.pathname;
+const isActive = (href: string) => {
+  if (href === '/') return currentPath === '/';
+  return currentPath.startsWith(href);
+};
 ---
 
-<header class="site-header">
+<header class="site-header" transition:persist>
   <a class="brand" href="/" aria-label="返回首页">
     <span class="brand-mark">HXQ</span>
     <span>黄鑫权</span>
   </a>
-  <div style="display:flex;align-items:center;gap:12px;">
+  <div class="header-actions">
     <nav class="nav" aria-label="主导航">
-      {navItems.map((item) => <a href={item.href}>{item.label}</a>)}
+      {navItems.map((item) => (
+        <a href={item.href} aria-current={isActive(item.href) ? 'page' : undefined}>
+          {item.label}
+        </a>
+      ))}
     </nav>
     <button
       class="theme-toggle"

@@ -1,5 +1,10 @@
 import { defineConfig } from 'astro/config';
+import sitemap from '@astrojs/sitemap';
 
 export default defineConfig({
-  site: 'https://sindirhuang.github.io',
+  site: 'https://scintillating-malasada-cb96d8.netlify.app',
+  integrations: [sitemap()],
+  experimental: {
+    clientPrerender: true,
+  },
 });

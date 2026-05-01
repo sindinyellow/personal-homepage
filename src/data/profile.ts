@@ -6,13 +6,31 @@ export const profile = {
   name: '黄鑫权',
   role: 'Java / Vue 全栈开发工程师',
   location: '广东',
+  availability: '正在寻找 Java 全栈开发相关岗位',
   summary:
     '计算机科学专业，专注 Java 后端与 Vue 前端开发。熟悉 Spring Boot、Vue 3、MySQL、Redis 等技术栈，具备独立完成业务系统全链路开发的能力。目前正在寻找 Java 全栈开发相关岗位。',
-  email: 'huangxinquan@example.com',
-  phone: '138-xxxx-xxxx',
   github: 'https://github.com/sindinyellow',
   gitee: 'https://gitee.com/sindinyellow',
   resumeUrl: '#',
+  focusAreas: [
+    {
+      title: '后端业务开发',
+      description: '使用 Spring Boot、MyBatis、MySQL、Redis 完成业务建模、接口设计和数据处理。',
+    },
+    {
+      title: '前端工程实现',
+      description: '使用 Vue 3、TypeScript、Element Plus 构建管理端页面和清晰的交互流程。',
+    },
+    {
+      title: '全链路交付',
+      description: '能从需求拆解、数据库设计、接口联调到前端页面落地，独立推进完整功能。',
+    },
+  ],
+  careerHighlights: [
+    '围绕校园赛事管理场景完成管理员与学生双角色业务系统设计。',
+    '熟悉 RBAC 权限、自动排程、报名幂等、成绩统计等常见后台系统能力。',
+    '持续用博客记录项目复盘、学习笔记和问题排查过程。',
+  ],
 };
 
 export const skills = [
