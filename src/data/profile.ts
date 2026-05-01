@@ -53,6 +53,23 @@ export const skills = [
 
 export const projects = [
   {
+    title: 'HIS 医院信息系统（实习）',
+    period: '2026.01 - 2026.04',
+    role: '后端开发 / 实习',
+    summary:
+      '面向医院门诊场景的信息管理系统，实习期间独立负责医生排班、预约挂号、预约签到三个核心模块的前后端开发，涉及 CAS 并发控制、DDD 分层架构和复杂 SQL 设计。',
+    stack: ['Spring Boot', 'MyBatis-Plus', 'PostgreSQL', 'Vue 3', 'Element Plus'],
+    highlights: [
+      '设计号源三层模型（排班模板 → 号源池 → 号源槽位），实现 CAS 原子抢占保证并发安全。',
+      '预约流程采用四道防线：取消次数限制、直查物理底座、CAS 原子抢占、数据强覆盖。',
+      '使用 PostgreSQL DISTINCT ON、状态归一化 CASE WHEN、五表联查等复杂 SQL 解决业务需求。',
+      '前端通过"一次性令牌"模式解决异步签到流程中的防串单问题。',
+    ],
+    links: [
+      { label: '技术博客', href: '/blog/his-internship/' },
+    ],
+  },
+  {
     title: '校园体育赛事管理系统',
     period: '2026',
     role: '全栈开发 / 毕业设计',
@@ -67,23 +84,6 @@ export const projects = [
     ],
     links: [
       { label: '代码仓库', href: 'https://github.com/sindinyellow' },
-    ],
-  },
-  {
-    title: 'HIS 医院信息系统（实习）',
-    period: '2026.03 - 2026.04',
-    role: '后端开发 / 实习',
-    summary:
-      '面向医院门诊场景的信息管理系统，实习期间独立负责医生排班、预约挂号、预约签到三个核心模块的前后端开发，涉及 CAS 并发控制、DDD 分层架构和复杂 SQL 设计。',
-    stack: ['Spring Boot', 'MyBatis-Plus', 'PostgreSQL', 'Vue 3', 'Element Plus'],
-    highlights: [
-      '设计号源三层模型（排班模板 → 号源池 → 号源槽位），实现 CAS 原子抢占保证并发安全。',
-      '预约流程采用四道防线：取消次数限制、直查物理底座、CAS 原子抢占、数据强覆盖。',
-      '使用 PostgreSQL DISTINCT ON、状态归一化 CASE WHEN、五表联查等复杂 SQL 解决业务需求。',
-      '前端通过"一次性令牌"模式解决异步签到流程中的防串单问题。',
-    ],
-    links: [
-      { label: '技术博客', href: '/blog/his-internship/' },
     ],
   },
   {

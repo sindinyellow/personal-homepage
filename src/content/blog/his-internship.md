@@ -8,7 +8,7 @@ tags: ['项目复盘', 'Spring Boot', 'Vue', 'PostgreSQL', '实习']
 > **项目类型**：医院信息管理系统（HIS, Hospital Information System）
 > **技术栈**：Spring Boot + MyBatis-Plus + PostgreSQL | Vue 3 + Element Plus
 > **架构风格**：DDD 分层架构（Controller → AppService → Domain Service → Mapper）
-> **开发周期**：2026年3月 -- 2026年4月（实习期间）
+> **开发周期**：2026年1月 -- 2026年4月（实习期间）
 > **个人职责**：独立负责医生排班、预约挂号、预约签到三个核心模块的前后端开发
 
 ## 项目背景
