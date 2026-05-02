@@ -13,7 +13,9 @@ tags: ['项目复盘', 'Spring Boot', 'Vue', 'PostgreSQL', '实习']
 
 ## 项目背景
 
-本项目是一套面向医院门诊场景的信息管理系统（OpenHIS），涵盖挂号收费、门诊医生站、预约管理、医保结算等模块。我实习期间主要负责**预约管理子系统**的三个核心功能模块：
+本项目是一套面向医院门诊场景的信息管理系统（OpenHIS），涵盖挂号收费、门诊医生站、预约管理、医保结算等模块。系统采用多租户架构，支持多家医院同时使用，通过 `tenant_id` 进行数据隔离。
+
+我实习期间主要负责**预约管理子系统**的三个核心功能模块：
 
 | 模块 | 核心职责 | 用户角色 |
 |------|---------|---------|
@@ -22,6 +24,32 @@ tags: ['项目复盘', 'Spring Boot', 'Vue', 'PostgreSQL', '实习']
 | 预约签到 | 患者到院签到、自动预结算、收费确认 | 收费员 |
 
 三个模块构成一条完整的业务链路：**排班生成号源 → 患者预约消耗号源 → 到院签到完成就诊**。
+
+### DDD 分层架构
+
+系统采用领域驱动设计的分层架构，每一层职责清晰：
+
+```
+┌─────────────────────────────────────────────────────────┐
+│  Controller 层                                           │
+│  接收 HTTP 请求，参数校验，调用 AppService，返回统一响应    │
+│  不包含任何业务逻辑                                       │
+├─────────────────────────────────────────────────────────┤
+│  AppService 层（应用服务层）                              │
+│  编排领域服务，管理事务边界，处理跨模块调用                 │
+│  业务逻辑的核心编排层                                     │
+├─────────────────────────────────────────────────────────┤
+│  Domain Service 层（领域服务层）                          │
+│  封装单个领域的核心业务规则                                │
+│  如：号源状态流转、排班冲突检测                            │
+├─────────────────────────────────────────────────────────┤
+│  Mapper 层（数据访问层）                                  │
+│  MyBatis-Plus Mapper 接口 + XML SQL 映射                  │
+│  负责数据库 CRUD 和复杂查询                               │
+└─────────────────────────────────────────────────────────┘
+```
+
+**实际开发中的分层示例**：预约挂号流程中，Controller 接收请求后调用 `TicketAppServiceImpl.bookTicket()`，该方法编排了取消次数检查（调用配置服务）、号源校验（调用 Mapper）、CAS 抢占（调用 Mapper）、创建订单（调用订单服务）、刷新统计（调用 Mapper）等多个步骤，每个步骤职责单一。
 
 ```
 ┌──────────────┐    生成号源    ┌──────────────┐    消耗号源    ┌──────────────┐
@@ -202,6 +230,87 @@ private boolean checkTimeOverlap(Long doctorId, LocalDate scheduleDate,
 }
 ```
 
+### 按星期批量排班
+
+除单日排班外，系统支持"按星期排班"模式——设置一次规则后，自动在未来 N 周内按星期循环生成排班：
+
+```java
+// DoctorScheduleAppServiceImpl.addDoctorScheduleWithWeekday
+LocalDate startDate = LocalDate.now();
+LocalDate endDate = startDate.plusWeeks(weeks);  // 默认生成4周
+
+// 遍历日期范围，匹配星期
+for (LocalDate date = startDate; !date.isAfter(endDate); date = date.plusDays(1)) {
+    if (date.getDayOfWeek() == targetWeekday) {
+        // 检查该日期是否已有排班
+        boolean exists = checkScheduleExists(doctorId, date, startTime, endTime);
+        if (!exists) {
+            // 复用单日排班逻辑：创建排班 → 号源池 → 号源槽位
+            addDoctorScheduleWithDate(doctorSchedule, date.toString());
+        }
+    }
+}
+```
+
+### 停诊处理
+
+当医生临时停诊时，需要级联更新所有关联数据：
+
+```
+停诊请求
+    │
+    ▼
+┌─────────────────────────────┐
+│  ① 更新排班主记录 is_stopped │
+└──────────┬──────────────────┘
+           │
+           ▼
+┌─────────────────────────────┐
+│  ② 查找关联的号源池          │
+│  遍历所有号源槽位            │
+└──────────┬──────────────────┘
+           │
+           ▼
+┌─────────────────────────────┐
+│  ③ 槽位状态更新              │
+│  AVAILABLE → CANCELLED       │
+│  BOOKED    → 保持不变        │
+│  (已预约的患者需要通知取消)   │
+└──────────┬──────────────────┘
+           │
+           ▼
+┌─────────────────────────────┐
+│  ④ 刷新号源池统计            │
+│  重新计算 available_num      │
+└─────────────────────────────┘
+```
+
+### 更新排班时的同步机制
+
+更新排班后，自动同步更新关联的号源池信息，避免联表查询时数据不一致：
+
+```java
+if (needSyncPool) {
+    schedulePoolService.lambdaUpdate()
+        .eq(SchedulePool::getScheduleId, doctorSchedule.getId())
+        .set(doctorSchedule.getDoctor() != null,
+             SchedulePool::getDoctorName, doctorSchedule.getDoctor())
+        .set(doctorSchedule.getClinic() != null,
+             SchedulePool::getClinicRoom, doctorSchedule.getClinic())
+        .set(doctorSchedule.getLimitNumber() != null,
+             SchedulePool::getTotalQuota, doctorSchedule.getLimitNumber())
+        .update();
+}
+```
+
+### 删除排班的级联逻辑
+
+排班删除是三层级联逻辑删除，在同一个事务中完成：
+
+```
+排班ID → 查号源池列表 → 查号源槽列表 → 逻辑删除槽 → 逻辑删除池 → 逻辑删除排班
+```
+
 ## 预约挂号模块
 
 ### 预约流程 -- 四道防线
@@ -298,6 +407,51 @@ safeParams.put("fee", toBigDecimal(slot.getFee()));
 safeParams.put("regType", slot.getRegType() != null && slot.getRegType() == 1 ? "专家" : "普通");
 ```
 
+### 取消预约
+
+取消预约同样需要保证数据一致性。流程：校验槽位状态 → 更新订单状态 → 释放号源 → 刷新统计：
+
+```java
+@Transactional(rollbackFor = Exception.class)
+public int cancelTicket(Long slotId) {
+    TicketSlotDTO slot = scheduleSlotMapper.selectTicketSlotById(slotId);
+    if (slot == null) {
+        throw new RuntimeException("号源槽位不存在");
+    }
+    if (slot.getSlotStatus() == null || !SlotStatus.BOOKED.equals(slot.getSlotStatus())) {
+        throw new RuntimeException("号源不可取消预约");
+    }
+
+    // 1. 更新订单状态为已取消
+    orderService.updateOrderStatusById(slot.getOrderId(),
+        AppointmentOrderStatus.CANCELLED);
+
+    // 2. 释放号源槽位：状态回退为可用
+    scheduleSlotMapper.updateSlotStatus(slotId, SlotStatus.AVAILABLE);
+
+    // 3. 刷新号源池统计
+    refreshPoolStatsBySlotId(slotId);
+    return 1;
+}
+```
+
+### 取消次数限制
+
+取消次数限制在**预约时**检查（而非取消时），目的是在源头拦截恶意占号行为。支持按 YEAR/MONTH/DAY 三种周期配置：
+
+```java
+AppointmentConfig config = appointmentConfigService.getConfigByTenantId(tenantId);
+if (config != null && config.getCancelAppointmentCount() != null
+        && config.getCancelAppointmentCount() > 0) {
+    LocalDateTime startTime = calculatePeriodStartTime(config.getCancelAppointmentType());
+    long cancelledCount = orderService.countPatientCancellations(patientId, tenantId, startTime);
+    if (cancelledCount >= config.getCancelAppointmentCount()) {
+        throw new RuntimeException("由于您在" + periodName + "内累计取消预约已达"
+            + cancelledCount + "次，触发系统限制，暂时无法在线预约");
+    }
+}
+```
+
 ### 号源池统计刷新
 
 号源池统计使用子查询实时重算，而不是简单的 +1/-1，避免并发场景下计数漂移：
@@ -379,6 +533,19 @@ function handleClose(value) {
 
 **设计要点**：`currentSlotId` 在预结算成功后才赋值，在消费后立即清空，防止异步流程中历史数据串入。
 
+### 核心 API 接口
+
+| 接口路径 | 方法 | 功能 | 认证要求 |
+|---------|------|------|---------|
+| `/appointment/ticket/list` | POST | 分页查询号源列表 | 匿名可访问 |
+| `/appointment/ticket/doctorSummary` | POST | 医生余号汇总 | 匿名可访问 |
+| `/appointment/ticket/book` | POST | 预约号源 | 需登录 |
+| `/appointment/ticket/cancel` | POST | 取消预约 | 需登录 |
+| `/appointment/ticket/checkin` | POST | 取号/签到 | 需登录 |
+| `/appointment/ticket/cancelConsultation` | POST | 停诊处理 | 需登录 |
+
+号源查询支持匿名访问（`@Anonymous` 注解），方便患者在未登录状态下浏览号源信息。预约和签到操作则需要通过 Spring Security 验证用户身份。
+
 ## 门诊退号 -- 跨系统状态同步
 
 当患者在门诊退号时，如果该挂号来源于预约签到，需要同步更新预约系统的状态。使用 try-catch 隔离，退号主流程不依赖预约同步成功：
@@ -402,6 +569,57 @@ private void syncAppointmentReturnStatus(Encounter encounter, String reason) {
         schedulePoolMapper.refreshPoolStats(poolId);
     } catch (Exception e) {
         log.warn("同步预约号源已退号状态失败", e);  // 异常仅记录，不影响主流程
+    }
+}
+```
+
+## 前端实现
+
+### 门诊预约页 -- 卡片式号源交互
+
+预约页采用**左侧筛选 + 右侧卡片网格**布局，核心交互：
+
+- **双击**未预约卡片 → 打开患者选择弹窗 → 确认预约
+- **右键**已预约卡片 → 弹出上下文菜单（取消预约/查看详情）
+- 支持按日期、状态、科室、医生、患者姓名多维筛选
+- 状态颜色映射：未预约(蓝)、已预约(橙)、已取号(绿)、已停诊(红)、已退号(灰)
+
+```javascript
+// 号源卡片双击事件
+function handleCardDblClick(slot) {
+    if (normalizeQueryStatus(slot.slotStatus) !== 'unbooked') {
+        ElMessage.warning('该号源不可预约');
+        return;
+    }
+    openPatientSelectDialog(slot);
+}
+```
+
+### 门诊挂号签到页 -- 复杂表单交互
+
+签到页是最复杂的前端页面，实现了完整的门诊挂号工作站：
+
+- 患者信息录入（支持电子凭证/身份证/医保卡读卡）
+- 科室 → 挂号类型 → 医生三级联动选择
+- 预约签到一键流程（弹窗选择已预约患者 → 自动匹配挂号类型 → 预结算 → 收费 → 签到）
+- hiprint 打印挂号单
+- 键盘导航支持（方向键/Tab 在表单字段间切换）
+
+### 前端状态归一化
+
+前端和后端都做了状态归一化，形成双重保障：
+
+```javascript
+function normalizeQueryStatus(rawStatus) {
+    const lower = rawStatus?.trim()?.toLowerCase();
+    switch (lower) {
+        case 'all':     case '全部':   return 'all';
+        case '0':       case '未预约': return 'unbooked';
+        case '1':       case '已预约': return 'booked';
+        case '4':       case '已取号': return 'checked';
+        case '2':       case '已停诊': return 'cancelled';
+        case '5':       case '已退号': return 'returned';
+        default: return '__invalid__';
     }
 }
 ```
@@ -454,6 +672,54 @@ FROM adm_schedule_slot s
 
 使用 PostgreSQL 的 `DISTINCT ON (slot_id)` 语法，取每个槽位的最新订单，避免一个槽位有多条历史订单时产生笛卡尔积。
 
+### 医生余号汇总查询
+
+患者预约时需要看到每个医生当天的剩余号数，使用 `GREATEST` 防止余号出现负数：
+
+```sql
+SELECT
+    p.doctor_id, p.doctor_name,
+    COALESCE(SUM(GREATEST(p.total_quota - p.booked_num - p.locked_num, 0)), 0)
+        AS available_total
+FROM adm_schedule_pool p
+WHERE p.schedule_date = #{date} AND p.delete_flag = '0'
+GROUP BY p.doctor_id, p.doctor_name
+```
+
+### 状态查询的复杂分支
+
+不同业务状态的查询条件差异很大，使用 `<choose><when>` 动态 SQL 实现。其中"已取号"状态有两种可能的数据来源（新流程用槽位状态 4，旧流程用订单状态 2），需要兼容处理：
+
+```xml
+<choose>
+    <when test="'unbooked'.equals(query.status)">
+        AND <include refid="slotStatusNormExpr" /> = 0
+        AND (d.is_stopped IS NULL OR d.is_stopped = FALSE)
+    </when>
+    <when test="'booked'.equals(query.status)">
+        AND <include refid="slotStatusNormExpr" /> = 1
+        AND <include refid="orderStatusNormExpr" /> = 1
+    </when>
+    <when test="'checked'.equals(query.status)">
+        AND (
+            <include refid="slotStatusNormExpr" /> = 4
+            OR (<include refid="slotStatusNormExpr" /> = 1
+                AND <include refid="orderStatusNormExpr" /> = 2)
+        )
+    </when>
+    <when test="'cancelled'.equals(query.status)">
+        AND (<include refid="slotStatusNormExpr" /> = 2 OR d.is_stopped = TRUE)
+    </when>
+    <when test="'returned'.equals(query.status)">
+        AND (<include refid="slotStatusNormExpr" /> = 5
+             OR <include refid="orderStatusNormExpr" /> = 4)
+    </when>
+    <otherwise>
+        AND 1 = 2
+    </otherwise>
+</choose>
+```
+
 ## 技术总结
 
 | 设计模式 | 应用场景 | 说明 |
@@ -468,11 +734,42 @@ FROM adm_schedule_slot s
 | **DISTINCT ON** | 订单查询 | PostgreSQL 特有语法，取每个槽位的最新订单 |
 | **数据库生成列** | 号源池 | `available_num` 由数据库自动计算，应用层不手动维护 |
 
+## 踩过的坑与解决思路
+
+### 1. 号源池统计漂移
+
+**问题**：最初使用简单的 `booked_num + 1` 来更新号源池统计，在并发预约场景下出现计数漂移——两个请求同时读到 `booked_num = 5`，各自 +1 后写入 6，实际应该是 7。
+
+**解决**：改用子查询实时重算 `COUNT(1)`，而不是基于旧值 +1/-1。虽然性能略低，但保证了数据准确性。对于医疗系统来说，正确性优先于性能。
+
+### 2. 状态字段类型不一致
+
+**问题**：系统演进过程中，`status` 字段在不同记录中混用了数字（0,1,2）和英文字符串（'booked','checked'），导致查询结果不完整。
+
+**解决**：在 Mapper XML 中定义状态归一化 SQL 片段，使用 `CASE WHEN LOWER(CONCAT('', status))` 统一转换，同时前端也做了归一化，形成双重保障。
+
+### 3. 前端签到串单
+
+**问题**：签到流程涉及预结算 → 收费弹窗 → 支付回调三个异步步骤。如果用户快速连续操作两个患者，第二个患者的签到回调可能使用了第一个患者的 slotId。
+
+**解决**：引入 `currentSlotId` ref 作为"一次性令牌"——预结算成功后才赋值，消费后立即清空。即使异步流程中用户切换了目标，旧的 slotId 已经被清空，不会串入新流程。
+
+### 4. 退号跨系统同步失败
+
+**问题**：门诊退号时需要同步更新预约系统状态，但如果同步逻辑抛异常，会导致整个退号流程失败。
+
+**解决**：使用 try-catch 隔离同步逻辑，退号主流程不依赖预约同步成功。异常仅记录日志，后续可通过定时任务补偿。
+
 ## 项目收获
 
-1. **DDD 分层架构实践**：从 Controller 到 Mapper，每一层职责清晰，业务逻辑集中在 AppService 层
-2. **并发安全设计**：理解了 CAS 乐观锁在实际业务中的应用，以及为什么医疗系统需要"绝对防御"
-3. **复杂 SQL 编写**：多表联查、动态条件、状态归一化、PostgreSQL 特有语法（DISTINCT ON、::date 类型转换）
-4. **前后端联调**：状态管理、生命周期控制、异步流程中的防串单设计
-5. **跨系统集成**：退号时的状态同步、软关联设计、异常隔离
-6. **医疗行业理解**：号源管理的业务逻辑、患者隐私保护、数据准确性要求
+1. **DDD 分层架构实践**：从 Controller 到 Mapper，每一层职责清晰，业务逻辑集中在 AppService 层。实际开发中深刻体会到"编排层不写业务规则，领域层不碰数据库"的好处——测试和维护都容易很多。
+
+2. **并发安全设计**：理解了 CAS 乐观锁在实际业务中的应用，以及为什么医疗系统需要"绝对防御"。在医院场景下，一个号源被重复预约、一笔费用被篡改，后果都比系统崩溃更严重。
+
+3. **复杂 SQL 编写**：多表联查、动态条件、状态归一化、PostgreSQL 特有语法（DISTINCT ON、::date 类型转换、GENERATED ALWAYS 生成列）。从"能写 CRUD"到"能设计复杂查询"是一个质的提升。
+
+4. **前后端联调**：状态管理、生命周期控制、异步流程中的防串单设计。前端不只是"调接口渲染页面"，还需要考虑异步竞态、状态一致性和用户体验。
+
+5. **跨系统集成**：退号时的状态同步、软关联设计、异常隔离。在多系统协作中，"不阻塞主流程"比"保证同步成功"更重要。
+
+6. **医疗行业理解**：号源管理的业务逻辑、患者隐私保护、数据准确性要求。医疗系统的特殊性在于：数据错误不会只是"显示 bug"，可能影响患者的就诊体验甚至医疗安全。
